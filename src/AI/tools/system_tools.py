@@ -83,67 +83,21 @@ def open_app(app_name: str) -> str:
 #----------------------------------------------------------------------------------------
 
 def web_search(query: str) -> str:
-    """Searches the internet for current information.
-    Use this when the user asks to search, find, look up, or get
-    current information from the web.
-    Do not use this for casual conversation.
-    """
-    if not query:
-        return "Please provide a search query."
+    """Searches the internet for information.
 
-    try:
-        client = TavilyClient(api_key=TAVILY_API_KEY)
+    Use this tool when the user asks about:
+    - recent or current events
+    - new releases, songs, albums, movies, games, products, etc.
+    - current news
+    - things that may have happened after your knowledge cutoff
+    - a person, topic, or event where you are unsure of the answer
+    - information that you cannot reliably answer from your existing knowledge
 
-        response = client.search(
-            query=query,
-            search_depth="basic",
-            max_results=5,
-        )
+    If the user's request appears to concern something recent or unknown,
+    search the web instead of guessing.
 
-        results = response.get("results", [])
-
-        if results:
-            output = []
-
-            for result in results:
-                output.append(
-                    f"Title: {result.get('title', '')}\n"
-                    f"URL: {result.get('url', '')}\n"
-                    f"Content: {result.get('content', '')}"
-                )
-
-            return "\n\n".join(output)
-
-    except Exception as e:
-        print(f"⚠️ Tavily search failed: {e}")
-        print("↪ Falling back to DuckDuckGo...")
-
-    try:
-        results = DDGS().text(
-            query,
-            max_results=5,
-        )
-
-        if not results:
-            return "No search results found."
-
-        output = []
-
-        for result in results:
-            output.append(
-                f"Title: {result.get('title', '')}\n"
-                f"URL: {result.get('href', '')}\n"
-                f"Content: {result.get('body', '')}"
-            )
-
-        return "\n\n".join(output)
-
-    except Exception as e:
-        return f"Web search failed. Tavily and DuckDuckGo were unavailable: {e}"def web_search(query: str) -> str:
-    """Searches the internet for current information.
-    Use this when the user asks to search, find, look up, or get
-    current information from the web.
-    Do not use this for casual conversation.
+    Do not use this tool for casual conversation that does not require
+    external information.
     """
     if not query:
         return "Please provide a search query."

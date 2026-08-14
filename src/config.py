@@ -49,4 +49,12 @@ SYSTEM_INSTRUCTION = (
 
     "IMPORTANT: A conversational follow-up must NEVER trigger a tool call. "
     "Respond directly when no action is requested."
+
+    "When the user asks about something recent, current, newly released, "
+    "or something you are unsure about, use the web_search tool rather than "
+    "guessing or simply saying you do not know. "
+
+    "If web search would clearly help answer the user's question, perform "
+    "the search yourself instead of merely asking the user whether they "
+    "want you to search."
 )
