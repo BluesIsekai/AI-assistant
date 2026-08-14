@@ -2,10 +2,18 @@ import os
 import subprocess
 import webbrowser
 from datetime import datetime
+from .aliases import APP_ALIASES
 
 def get_current_time() -> str:
-    """Returns the current date and time of the system."""
+    """Returns the current date and time.
+    ONLY use this tool when the user explicitly asks for the current
+    time, date, day, or a time/date-related calculation. Do not use
+    this tool just because the conversation mentions a time of day,
+    tonight, today, morning, evening, etc.
+    """
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+#--------------------------------------------------------------------------------------
 
 def open_website(url: str) -> str:
     """Opens a website URL in the user's web browser.
@@ -17,28 +25,7 @@ def open_website(url: str) -> str:
     webbrowser.open(url)
     return f"Successfully opened {url} in your browser."
 
-
-APP_ALIASES = {
-    "google chrome": "chrome",
-    "chrome browser": "chrome",
-    "microsoft edge": "msedge",
-    "edge browser": "msedge",
-    "vs code": "code",
-    "vscode": "code",
-    "visual studio code": "code",
-    "calculator": "calc",
-    "command prompt": "cmd",
-    "powershell": "powershell",
-    "paint": "mspaint",
-    "word": "winword",
-    "excel": "excel",
-    "powerpoint": "powerpnt",
-    "file explorer": "explorer",
-    "task manager": "taskmgr",
-    "notepad": "notepad",
-    "zen browser": 'zen',
-}
-
+#--------------------------------------------------------------------------------------
 
 def open_app(app_name: str) -> str:
     """Launches a desktop application installed on the user's Windows computer.
@@ -62,15 +49,30 @@ def open_app(app_name: str) -> str:
 
     # Fallback to subprocess Popen
     try:
-        subprocess.Popen([target_app])
+        subprocess.Popen(
+            [target_app],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
         return f"Successfully opened {app_name}"
+
     except FileNotFoundError:
-        # Fallback to start command via shell
         try:
-            subprocess.Popen(f'start "" "{target_app}"', shell=True)
+            subprocess.Popen(
+                f'start "" "{target_app}"',
+                shell=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
             return f"Successfully opened {app_name}"
+
         except Exception as e:
             return f"Error: Could not find or launch application '{app_name}'. Error details: {e}"
+
     except Exception as e:
         return f"An unexpected error occurred while launching '{app_name}': {e}"
 
