@@ -18,6 +18,7 @@ def validate_config() -> None:
 MODEL_NAME = "gemini-3.6-flash"
 LOCAL_MODEL = "qwen3.5:9b"
 CONTEXT_SIZE = 8192
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 
 
 

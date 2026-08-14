@@ -1,16 +1,36 @@
 from ollama import chat
 import config
+import inspect
 
 
 def create_tools(tools: list) -> list:
     tool_definitions = []
 
     for tool in tools:
+        signature = inspect.signature(tool)
+
+        properties = {}
+        required = []
+
+        for name, parameter in signature.parameters.items():
+            properties[name] = {
+                "type": "string",
+                "description": f"Parameter for {name}",
+            }
+
+            if parameter.default is inspect.Parameter.empty:
+                required.append(name)
+
         tool_definitions.append({
             "type": "function",
             "function": {
                 "name": tool.__name__,
                 "description": tool.__doc__ or "",
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required,
+                },
             },
         })
 
