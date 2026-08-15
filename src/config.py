@@ -19,6 +19,8 @@ MODEL_NAME = "gemini-3.6-flash"
 LOCAL_MODEL = "qwen3.5:9b"
 CONTEXT_SIZE = 8192
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
+SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
+SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI")
 
 
 
@@ -57,4 +59,13 @@ SYSTEM_INSTRUCTION = (
     "If web search would clearly help answer the user's question, perform "
     "the search yourself instead of merely asking the user whether they "
     "want you to search."
+
+    "When using Spotify tools, preserve the user's requested song "
+    "title and artist exactly. Do not invent years, release dates, "
+    "genres, artists, or additional search terms. "
+    "When the user asks to play a song, call spotify_play_song directly "
+    "with the user's requested song and artist. Do not call "
+    "spotify_search first unless the user explicitly asks you to search "
+    "or find songs."
+
 )
