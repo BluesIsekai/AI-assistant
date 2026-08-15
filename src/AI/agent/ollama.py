@@ -2,6 +2,48 @@ from ollama import chat
 import config
 import inspect
 
+_conversation_history: list = []
+
+
+def clear_history() -> None:
+    """Clears the stored conversation history."""
+    global _conversation_history
+    _conversation_history.clear()
+
+
+def get_history() -> list:
+    """Returns a shallow copy of the stored conversation history."""
+    return list(_conversation_history)
+
+
+def format_message(msg) -> dict:
+    """Formats an Ollama Message object or dict into a clean dict for Ollama chat history."""
+    if hasattr(msg, "model_dump"):
+        d = msg.model_dump(exclude_none=True)
+    elif isinstance(msg, dict):
+        d = dict(msg)
+    else:
+        d = {
+            "role": str(getattr(msg, "role", "assistant")),
+            "content": str(getattr(msg, "content", "")),
+        }
+
+    # Exclude internal reasoning/thinking output from message history to stay token-efficient
+    d.pop("thinking", None)
+    return d
+
+
+def _trim_history(history: list, max_messages: int) -> list:
+    """Trims message history to at most max_messages while ensuring it begins with a user message."""
+    if len(history) <= max_messages:
+        return history
+
+    trimmed = history[-max_messages:]
+    while trimmed and trimmed[0].get("role") != "user":
+        trimmed.pop(0)
+
+    return trimmed
+
 
 def create_tools(tools: list) -> list:
     tool_definitions = []
@@ -37,16 +79,37 @@ def create_tools(tools: list) -> list:
     return tool_definitions
 
 
-def send_message(user_input: str, tools: list, tool_map: dict) -> str:
+def send_message(
+    user_input: str,
+    tools: list,
+    tool_map: dict,
+    history: list = None,
+) -> str:
+    """Sends a user message to Ollama with multi-turn conversation context and tool support.
+
+    If history is provided (as a list), it will be used and updated in-place.
+    Otherwise, the module-level conversation history is maintained across calls.
+    """
+    global _conversation_history
+
+    target_history = history if history is not None else _conversation_history
+
+    # Append user input to history
+    target_history.append({
+        "role": "user",
+        "content": user_input,
+    })
+
+    max_history = getattr(config, "MAX_HISTORY_MESSAGES", 20)
+    trimmed_history = _trim_history(target_history, max_history)
+
+    # Build active context payload for Ollama
     messages = [
         {
             "role": "system",
             "content": config.SYSTEM_INSTRUCTION,
         },
-        {
-            "role": "user",
-            "content": user_input,
-        },
+        *[format_message(m) for m in trimmed_history]
     ]
 
     response = chat(
@@ -60,7 +123,9 @@ def send_message(user_input: str, tools: list, tool_map: dict) -> str:
     )
 
     while response.message.tool_calls:
-        messages.append(response.message)
+        assistant_msg = format_message(response.message)
+        target_history.append(assistant_msg)
+        messages.append(assistant_msg)
 
         for call in response.message.tool_calls:
             func_name = call.function.name
@@ -74,15 +139,18 @@ def send_message(user_input: str, tools: list, tool_map: dict) -> str:
             if func_name not in tool_map:
                 tool_result = f"Error: Tool '{func_name}' not found."
             else:
-                tool_result = tool_map[func_name](**func_args)
+                try:
+                    tool_result = tool_map[func_name](**func_args)
+                except Exception as e:
+                    tool_result = f"Error executing tool '{func_name}': {e}"
 
-            messages.append(
-                {
-                    "role": "tool",
-                    "name": func_name,
-                    "content": str(tool_result),
-                }
-            )
+            tool_msg = {
+                "role": "tool",
+                "name": func_name,
+                "content": str(tool_result),
+            }
+            target_history.append(tool_msg)
+            messages.append(tool_msg)
 
         response = chat(
             model=config.LOCAL_MODEL,
@@ -94,6 +162,13 @@ def send_message(user_input: str, tools: list, tool_map: dict) -> str:
             }
         )
 
+    final_assistant_msg = format_message(response.message)
+    target_history.append(final_assistant_msg)
+
+    # If using module history, enforce sliding window trim
+    if history is None:
+        _conversation_history[:] = _trim_history(_conversation_history, max_history)
+
     return response.message.content
 
 
@@ -102,4 +177,4 @@ def unload_model() -> None:
         model=config.LOCAL_MODEL,
         messages=[],
         keep_alive=0,
-    )
+    )

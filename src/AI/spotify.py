@@ -1,3 +1,5 @@
+from google.genai._gaos.utils import queryparams
+from google.genai._gaos.utils import queryparams
 import sys
 from pathlib import Path
 
@@ -11,7 +13,9 @@ from config import SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI
 SCOPES = (
     "user-read-playback-state "
     "user-modify-playback-state "
-    "user-read-currently-playing"
+    "user-read-currently-playing "
+    "playlist-read-private "
+    "playlist-read-collaborative"
 )
 
 
@@ -227,6 +231,171 @@ def spotify_previous() -> str:
         return f"Could not go to the previous track: {e}"
 
 
+def spotify_find_playlist(query: str) -> str:
+    """Finds and displays the user's Spotify playlists.
+
+    ONLY use this tool when the user wants to FIND, SEARCH FOR,
+    LIST, or IDENTIFY a playlist.
+
+    Do NOT use this tool when the user asks to play a playlist.
+    For playback, use spotify_play_playlist instead.
+    """
+    if not query:
+        return "Please provide a playlist name."
+
+    spotify = get_spotify()
+    query = query.lower().strip()
+
+    playlists = []
+    offset = 0
+
+    while True:
+        results = spotify.current_user_playlists(
+            limit=50,
+            offset=offset
+        )
+
+        items = results["items"]
+
+        if not items:
+            break
+
+        playlists.extend(items)
+
+        if not results["next"]:
+            break
+
+        offset += 50
+
+    exact_matches = [
+        playlist
+        for playlist in playlists
+        if playlist["name"].lower() == query
+    ]
+
+    partial_matches = [
+        playlist
+        for playlist in playlists
+        if query in playlist["name"].lower()
+        and playlist["name"].lower() != query
+    ]
+
+    matches = exact_matches + partial_matches
+
+    if not matches:
+        return f"I couldn't find a playlist matching '{query}'."
+
+    output = []
+
+    for playlist in matches[:10]:
+        output.append(
+            f'{playlist["name"]} — {playlist["items"]["total"]} tracks\n'
+            f'URI: {playlist["uri"]}'
+        )
+
+    return "\n\n".join(output)
+
+
+def spotify_play_playlist(query: str) -> str:
+    """Plays one of the user's Spotify playlists.
+
+    ALWAYS use this tool when the user asks to:
+    - play a playlist
+    - start a playlist
+    - put on a playlist
+    - listen to a playlist
+    - play my playlist
+    - play [playlist name]
+
+    The query should contain ONLY the playlist name.
+    Remove phrases like "play", "my", and "playlist" from the query.
+
+    Examples:
+    "play my Songs playlist" -> query="Songs"
+    "play Songs playlist" -> query="Songs"
+    "play my chill playlist" -> query="chill"
+    "start my Gym playlist" -> query="Gym"
+
+    Do NOT use spotify_find_playlist when the user wants to PLAY a playlist.
+    """
+    if not query:
+        return "Please provide a playlist name."
+
+    spotify = get_spotify()
+    query = query.strip().lower()
+
+    if query.endswith(" playlist"):
+        query = query[:-9].strip()
+
+    playlists = []
+    offset = 0
+
+    while True:
+        results = spotify.current_user_playlists(
+            limit=50,
+            offset=offset
+        )
+
+        items = results["items"]
+
+        if not items:
+            break
+
+        playlists.extend(items)
+
+        if not results["next"]:
+            break
+
+        offset += 50
+
+    exact_matches = [
+        playlist
+        for playlist in playlists
+        if playlist["name"].lower() == query
+    ]
+
+    if len(exact_matches) == 1:
+        playlist = exact_matches[0]
+
+    else:
+        matches = [
+            playlist
+            for playlist in playlists
+            if query in playlist["name"].lower()
+        ]
+
+        if not matches:
+            return f"I couldn't find a playlist matching '{query}'."
+
+        if len(matches) > 1:
+            output = []
+
+            for playlist in matches[:10]:
+                output.append(
+                    f'{playlist["name"]} — {playlist["items"]["total"]} tracks'
+                )
+
+            return (
+                f"I found multiple playlists matching '{query}':\n"
+                + "\n".join(f"- {item}" for item in output)
+                + "\nWhich one did you mean?"
+            )
+
+        playlist = matches[0]
+
+    try:
+        spotify.start_playback(
+            context_uri=playlist["uri"]
+        )
+    except Exception as e:
+        return f"Could not start playlist playback: {e}"
+
+    return (
+        f'Playing playlist "{playlist["name"]}" '
+        f'with {playlist["items"]["total"]} tracks.'
+    )
+
+
 
 # SPOTIFY TOOLS
 ALL_SPOTIFY_TOOLS = [
@@ -237,10 +406,13 @@ ALL_SPOTIFY_TOOLS = [
     spotify_resume,
     spotify_next,
     spotify_previous,
+    spotify_find_playlist,
+    spotify_play_playlist,
 ]
 
 if __name__ == "__main__":
-     print(spotify_now_playing())
+    # print(spotify_now_playing())  
+    print(spotify_play_playlist("Songs"))
 
     # print(spotify_pause())
     # print(spotify_resume())
