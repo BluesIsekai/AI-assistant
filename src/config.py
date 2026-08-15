@@ -19,9 +19,12 @@ MODEL_NAME = "gemini-3.6-flash"
 LOCAL_MODEL = "qwen3.5:9b"
 CONTEXT_SIZE = 8192
 MAX_HISTORY_MESSAGES = 20
+# Time to keep model in RAM/VRAM while idle (e.g. "5m", "2m", "30s", 0 to unload immediately, or "-1" for infinite)
+KEEP_ALIVE = "10m"
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI")
+
 
 
 

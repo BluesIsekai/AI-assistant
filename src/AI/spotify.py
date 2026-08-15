@@ -1,5 +1,3 @@
-from google.genai._gaos.utils import queryparams
-from google.genai._gaos.utils import queryparams
 import sys
 from pathlib import Path
 
@@ -18,9 +16,16 @@ SCOPES = (
     "playlist-read-collaborative"
 )
 
+_spotify_client = None
+
 
 # Function: get_spotify
 def get_spotify():
+    global _spotify_client
+
+    if _spotify_client is not None:
+        return _spotify_client
+
     auth_manager = SpotifyPKCE(
         client_id=SPOTIFY_CLIENT_ID,
         redirect_uri=SPOTIFY_REDIRECT_URI,
@@ -29,7 +34,9 @@ def get_spotify():
         open_browser=True,
     )
 
-    return spotipy.Spotify(auth_manager=auth_manager)
+    _spotify_client = spotipy.Spotify(auth_manager=auth_manager)
+    return _spotify_client
+
 
 # Function: spotify_now_playing
 def spotify_now_playing() -> str:

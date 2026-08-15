@@ -112,17 +112,24 @@ def send_message(
         *[format_message(m) for m in trimmed_history]
     ]
 
+    keep_alive_val = getattr(config, "KEEP_ALIVE", "5m")
+
     response = chat(
         model=config.LOCAL_MODEL,
         messages=messages,
         tools=tools,
         think=False,
+        keep_alive=keep_alive_val,
         options={
             "num_ctx": config.CONTEXT_SIZE,
         }
     )
 
-    while response.message.tool_calls:
+    tool_iterations = 0
+    max_tool_iterations = getattr(config, "MAX_TOOL_ITERATIONS", 10)
+
+    while response.message.tool_calls and tool_iterations < max_tool_iterations:
+        tool_iterations += 1
         assistant_msg = format_message(response.message)
         target_history.append(assistant_msg)
         messages.append(assistant_msg)
@@ -157,10 +164,15 @@ def send_message(
             messages=messages,
             tools=tools,
             think=False,
+            keep_alive=keep_alive_val,
             options={
                 "num_ctx": config.CONTEXT_SIZE,
             }
         )
+
+
+    if tool_iterations >= max_tool_iterations:
+        print(f"⚠️ Warning: Reached maximum tool iteration limit ({max_tool_iterations}).")
 
     final_assistant_msg = format_message(response.message)
     target_history.append(final_assistant_msg)
@@ -169,12 +181,18 @@ def send_message(
     if history is None:
         _conversation_history[:] = _trim_history(_conversation_history, max_history)
 
-    return response.message.content
+    return response.message.content or ""
 
 
 def unload_model() -> None:
-    chat(
-        model=config.LOCAL_MODEL,
-        messages=[],
-        keep_alive=0,
-    )
+    """Unloads the local Ollama model from RAM/VRAM by sending keep_alive=0."""
+    try:
+        chat(
+            model=config.LOCAL_MODEL,
+            messages=[],
+            keep_alive=0,
+        )
+        print("🧠 Local model unloaded from memory.")
+    except Exception as e:
+        pass
+
