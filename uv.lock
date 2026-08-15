@@ -11,6 +11,7 @@ dependencies = [
     { name = "google-genai" },
     { name = "ollama" },
     { name = "python-dotenv" },
+    { name = "requests" },
     { name = "tavily-python" },
 ]
 
@@ -20,6 +21,7 @@ requires-dist = [
     { name = "google-genai", specifier = ">=2.18.1" },
     { name = "ollama", specifier = ">=0.6.2" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "requests", specifier = ">=2.34.2" },
     { name = "tavily-python", specifier = ">=0.7.27" },
 ]
 
