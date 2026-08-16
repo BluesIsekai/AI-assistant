@@ -5,6 +5,8 @@ import inspect
 _conversation_history: list = []
 
 from memory.context import build_memory_context
+from memory.processing import process_conversation
+from AI.agent.memory_llm import ollama_memory_llm
 
 def clear_history() -> None:
     """Clears the stored conversation history."""
@@ -184,17 +186,30 @@ def send_message(
         )
 
 
-    if tool_iterations >= max_tool_iterations:
-        print(f"⚠️ Warning: Reached maximum tool iteration limit ({max_tool_iterations}).")
-
     final_assistant_msg = format_message(response.message)
     target_history.append(final_assistant_msg)
 
+    assistant_response = response.message.content or ""
+
+    # Process the completed conversation for memory updates
+    if assistant_response:
+        try:
+            process_conversation(
+                user_input,
+                assistant_response,
+                ollama_memory_llm,
+            )
+        except Exception as e:
+            print(f"⚠️ Memory processing failed: {e}")
+
     # If using module history, enforce sliding window trim
     if history is None:
-        _conversation_history[:] = _trim_history(_conversation_history, max_history)
+        _conversation_history[:] = _trim_history(
+        _conversation_history,
+        max_history,
+    )
 
-    return response.message.content or ""
+    return assistant_response
 
 
 def unload_model() -> None:

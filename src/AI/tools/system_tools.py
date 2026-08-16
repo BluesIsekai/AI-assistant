@@ -83,7 +83,8 @@ def open_app(app_name: str) -> str:
 #----------------------------------------------------------------------------------------
 
 def web_search(query: str) -> str:
-    """Searches the internet for information.
+    """
+    Searches the internet for information.
 
     Use this tool when the user asks about:
     - recent or current events
@@ -98,6 +99,17 @@ def web_search(query: str) -> str:
 
     Do not use this tool for casual conversation that does not require
     external information.
+
+    When searching, preserve the user's terminology and intent. Do not
+    silently replace the user's topic with a different concept.
+
+    After searching, base the answer on the retrieved information. If the
+    query is ambiguous or could refer to multiple related concepts, explain
+    the distinction rather than confidently assuming what the user meant.
+
+    When explaining technical topics, distinguish between the core concept,
+    related concepts, attacks, and defenses. Do not treat related concepts as
+    synonyms unless they actually are.
     """
     if not query:
         return "Please provide a search query."
