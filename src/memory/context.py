@@ -4,11 +4,18 @@ from .manager import memory
 def build_memory_context(
     query: str,
     limit: int = 5,
+    min_relevance: float = 0.40,
 ) -> str:
     memories = memory.search(
         query=query,
-        limit=limit,
+        limit=10,
     )
+
+    memories = [
+        item
+        for item in memories
+        if item.get("_relevance_score", 0.0) >= min_relevance
+    ]
 
     if not memories:
         return ""
