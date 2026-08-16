@@ -195,4 +195,4 @@ def unload_model() -> None:
         print("🧠 Local model unloaded from memory.")
     except Exception as e:
         pass
-
+
