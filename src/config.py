@@ -25,11 +25,13 @@ TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY")
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID")
 SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI")
 
-
+NAME = "Yuna"
 
 
 
 SYSTEM_INSTRUCTION = (
+    f"Your name is {NAME}"
+
     # General Assistant Role & Purpose
     "You are a personal desktop AI assistant. "
     "Your job is to help the user interact with their computer and get things done. "

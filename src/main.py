@@ -7,6 +7,7 @@ from AI.agent.ollama import send_message, unload_model
 from AI.tools import ALL_TOOLS, TOOLS_MAP
 from AI.ollama_manager import start_ollama, stop_ollama
 from utils import init_memory_tracker, print_memory_stats
+from config import NAME
 
 
 def main():
@@ -26,11 +27,11 @@ def main():
                     continue
 
                 if user_input.lower() in ["exit", "quit"]:
-                    print("AI: See you later!")
+                    print(f"{NAME}: See you later!")
                     break
 
                 response = send_message(user_input, ALL_TOOLS, TOOLS_MAP)
-                print(f"AI: {response}\n")
+                print(f"{NAME}: {response}\n")
 
                 print_memory_stats()
 
