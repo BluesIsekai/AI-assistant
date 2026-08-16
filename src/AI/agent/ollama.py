@@ -4,6 +4,7 @@ import inspect
 
 _conversation_history: list = []
 
+from memory.context import build_memory_context
 
 def clear_history() -> None:
     """Clears the stored conversation history."""
@@ -100,6 +101,8 @@ def send_message(
         "content": user_input,
     })
 
+    memory_context = build_memory_context(user_input)
+
     max_history = getattr(config, "MAX_HISTORY_MESSAGES", 20)
     trimmed_history = _trim_history(target_history, max_history)
 
@@ -108,9 +111,19 @@ def send_message(
         {
             "role": "system",
             "content": config.SYSTEM_INSTRUCTION,
-        },
-        *[format_message(m) for m in trimmed_history]
+        }
     ]
+
+    if memory_context:
+        messages.append({
+            "role": "system",
+            "content": memory_context,
+        })
+
+    messages.extend(
+        format_message(m)
+        for m in trimmed_history
+    )
 
     keep_alive_val = getattr(config, "KEEP_ALIVE", "5m")
 
