@@ -4,12 +4,10 @@ from .manager import memory
 def build_memory_context(
     query: str,
     limit: int = 5,
-    min_similarity: float = 0.6,
 ) -> str:
     memories = memory.search(
         query=query,
         limit=limit,
-        min_similarity=min_similarity,
     )
 
     if not memories:

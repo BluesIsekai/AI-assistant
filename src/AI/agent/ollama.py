@@ -1,6 +1,7 @@
 from ollama import chat
 import config
 import inspect
+import threading
 
 _conversation_history: list = []
 
@@ -81,6 +82,19 @@ def create_tools(tools: list) -> list:
 
     return tool_definitions
 
+def _process_memory_background(
+    user_input: str,
+    assistant_response: str,
+) -> None:
+    try:
+        process_conversation(
+            user_input,
+            assistant_response,
+            ollama_memory_llm,
+        )
+    except Exception as e:
+        print(f"⚠️ Memory processing failed: {e}")
+
 
 def send_message(
     user_input: str,
@@ -103,12 +117,13 @@ def send_message(
         "content": user_input,
     })
 
+    # Retrieve relevant memories for the current message.
     memory_context = build_memory_context(user_input)
 
     max_history = getattr(config, "MAX_HISTORY_MESSAGES", 20)
     trimmed_history = _trim_history(target_history, max_history)
 
-    # Build active context payload for Ollama
+    # Build active context payload for Ollama.
     messages = [
         {
             "role": "system",
@@ -137,15 +152,24 @@ def send_message(
         keep_alive=keep_alive_val,
         options={
             "num_ctx": config.CONTEXT_SIZE,
-        }
+        },
     )
 
     tool_iterations = 0
-    max_tool_iterations = getattr(config, "MAX_TOOL_ITERATIONS", 10)
+    max_tool_iterations = getattr(
+        config,
+        "MAX_TOOL_ITERATIONS",
+        10,
+    )
 
-    while response.message.tool_calls and tool_iterations < max_tool_iterations:
+    while (
+        response.message.tool_calls
+        and tool_iterations < max_tool_iterations
+    ):
         tool_iterations += 1
+
         assistant_msg = format_message(response.message)
+
         target_history.append(assistant_msg)
         messages.append(assistant_msg)
 
@@ -159,18 +183,26 @@ def send_message(
             )
 
             if func_name not in tool_map:
-                tool_result = f"Error: Tool '{func_name}' not found."
+                tool_result = (
+                    f"Error: Tool '{func_name}' not found."
+                )
             else:
                 try:
-                    tool_result = tool_map[func_name](**func_args)
+                    tool_result = tool_map[func_name](
+                        **func_args
+                    )
                 except Exception as e:
-                    tool_result = f"Error executing tool '{func_name}': {e}"
+                    tool_result = (
+                        f"Error executing tool "
+                        f"'{func_name}': {e}"
+                    )
 
             tool_msg = {
                 "role": "tool",
                 "name": func_name,
                 "content": str(tool_result),
             }
+
             target_history.append(tool_msg)
             messages.append(tool_msg)
 
@@ -182,35 +214,38 @@ def send_message(
             keep_alive=keep_alive_val,
             options={
                 "num_ctx": config.CONTEXT_SIZE,
-            }
+            },
         )
 
+    if tool_iterations >= max_tool_iterations:
+        print(
+            f"⚠️ Warning: Reached maximum tool iteration "
+            f"limit ({max_tool_iterations})."
+        )
 
+    # Store final assistant response.
     final_assistant_msg = format_message(response.message)
     target_history.append(final_assistant_msg)
 
     assistant_response = response.message.content or ""
 
-    # Process the completed conversation for memory updates
+    # Process memory in the background so the user does not
+    # have to wait for extraction, deduplication, and embedding.
     if assistant_response:
-        try:
-            process_conversation(
-                user_input,
-                assistant_response,
-                ollama_memory_llm,
-            )
-        except Exception as e:
-            print(f"⚠️ Memory processing failed: {e}")
+        threading.Thread(
+            target=_process_memory_background,
+            args=(user_input, assistant_response),
+            daemon=True,
+        ).start()
 
-    # If using module history, enforce sliding window trim
+    # If using module history, enforce sliding window trim.
     if history is None:
         _conversation_history[:] = _trim_history(
-        _conversation_history,
-        max_history,
-    )
+            _conversation_history,
+            max_history,
+        )
 
     return assistant_response
-
 
 def unload_model() -> None:
     """Unloads the local Ollama model from RAM/VRAM by sending keep_alive=0."""

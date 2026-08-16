@@ -8,6 +8,9 @@ def embed(text: str) -> list[float]:
     response = ollama.embed(
         model=EMBEDDING_MODEL,
         input=text,
+        options={
+            "num_gpu": 0,
+        }
     )
 
     return response["embeddings"][0]

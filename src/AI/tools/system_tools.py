@@ -84,32 +84,45 @@ def open_app(app_name: str) -> str:
 
 def web_search(query: str) -> str:
     """
-    Searches the internet for information.
+    Search the internet for information that requires current, external,
+    or explicitly requested web information.
 
-    Use this tool when the user asks about:
-    - recent or current events
-    - new releases, songs, albums, movies, games, products, etc.
-    - current news
-    - things that may have happened after your knowledge cutoff
-    - a person, topic, or event where you are unsure of the answer
-    - information that you cannot reliably answer from your existing knowledge
+    IMPORTANT:
+    Do NOT use this tool for ordinary programming questions or code generation.
+    If the user asks for code for a standard algorithm, data structure,
+    programming concept, or common language feature, answer directly from
+    your existing knowledge.
 
-    If the user's request appears to concern something recent or unknown,
-    search the web instead of guessing.
+    Examples that MUST NOT use this tool:
+    - "give me DFS code in C++"
+    - "write binary search in Python"
+    - "implement a linked list in C++"
+    - "explain recursion"
+    - "what is a DFA?"
+    - "write an SQL JOIN example"
 
-    Do not use this tool for casual conversation that does not require
-    external information.
+    Use this tool for:
+    - current or recent news
+    - current events
+    - latest releases
+    - current prices or availability
+    - current software/library/API documentation
+    - information that may have changed recently
+    - niche information you genuinely do not know
+    - explicit requests to search the web or look something up online
 
-    When searching, preserve the user's terminology and intent. Do not
-    silently replace the user's topic with a different concept.
+    Do not use this tool merely because a web result or example could
+    improve an otherwise answerable response.
 
-    After searching, base the answer on the retrieved information. If the
-    query is ambiguous or could refer to multiple related concepts, explain
-    the distinction rather than confidently assuming what the user meant.
+    Never claim that you searched the web unless this tool was actually
+    executed during the current response.
 
-    When explaining technical topics, distinguish between the core concept,
-    related concepts, attacks, and defenses. Do not treat related concepts as
-    synonyms unless they actually are.
+    When searching, preserve the user's terminology and intent.
+    Do not silently replace the user's topic with a different concept.
+
+    After searching, base the answer on the retrieved information.
+    If the query is ambiguous, explain the distinction instead of
+    confidently assuming what the user meant.
     """
     if not query:
         return "Please provide a search query."
