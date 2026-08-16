@@ -218,7 +218,15 @@ def store_embedding(memory_id: int, embedding: list[float]) -> None:
     with get_connection() as connection:
         connection.execute(
             """
-            INSERT OR REPLACE INTO memory_vectors (
+            DELETE FROM memory_vectors
+            WHERE memory_id = ?
+            """,
+            (memory_id,),
+        )
+
+        connection.execute(
+            """
+            INSERT INTO memory_vectors (
                 memory_id,
                 embedding
             )
