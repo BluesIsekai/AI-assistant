@@ -8,6 +8,8 @@ from .database import (
 )
 from .embeddings import embed
 from .retrieval import search
+from queue import Queue
+from threading import Thread
 
 
 class MemoryManager:

@@ -6,8 +6,7 @@ import threading
 _conversation_history: list = []
 
 from memory.context import build_memory_context
-from memory.processing import process_conversation
-from AI.agent.memory_llm import ollama_memory_llm
+from memory.worker import memory_worker
 
 def clear_history() -> None:
     """Clears the stored conversation history."""
@@ -81,19 +80,6 @@ def create_tools(tools: list) -> list:
         })
 
     return tool_definitions
-
-def _process_memory_background(
-    user_input: str,
-    assistant_response: str,
-) -> None:
-    try:
-        process_conversation(
-            user_input,
-            assistant_response,
-            ollama_memory_llm,
-        )
-    except Exception as e:
-        print(f"⚠️ Memory processing failed: {e}")
 
 
 def send_message(
@@ -232,11 +218,7 @@ def send_message(
     # Process memory in the background so the user does not
     # have to wait for extraction, deduplication, and embedding.
     if assistant_response:
-        threading.Thread(
-            target=_process_memory_background,
-            args=(user_input, assistant_response),
-            daemon=True,
-        ).start()
+        memory_worker.submit(user_input, assistant_response)
 
     # If using module history, enforce sliding window trim.
     if history is None:
