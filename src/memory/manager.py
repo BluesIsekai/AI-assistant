@@ -47,14 +47,14 @@ class MemoryManager:
         self,
         query: str,
         limit: int = 5,
-        min_similarity: float = 0.0,
+        min_relevance: float = 0.45,
         memory_type: str | None = None,
         category: str | None = None,
     ) -> list[dict]:
         return search(
             query=query,
             limit=limit,
-            min_similarity=min_similarity,
+            min_relevance=min_relevance,
             memory_type=memory_type,
             category=category,
         )

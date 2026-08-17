@@ -20,7 +20,7 @@ def process_conversation(
         existing = memory.search(
             candidate["content"],
             limit=5,
-            min_similarity=0.65,
+            min_relevance=0.65,
         )
 
         decision = resolve_memory(

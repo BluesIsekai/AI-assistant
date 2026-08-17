@@ -1,8 +1,10 @@
+from asyncio import queues
 from .database import get_connection, VECTOR_DIMENSION
 from .embeddings import embed
 import sqlite_vec
 import re
 
+from .query import normalize_query
 
 def _tokenize(text: str) -> set[str]:
     stop_words = {
@@ -73,12 +75,17 @@ def _relevance_score(
 def search(
     query: str,
     limit: int = 5,
-    min_similarity: float = 0.3,
+    min_relevance: float = 0.45,
     memory_type: str | None = None,
     category: str | None = None,
 ) -> list[dict]:
 
-    query_embedding = embed(query)
+    retrieval_query = normalize_query(query)
+
+    if not retrieval_query:
+        retrieval_query = query
+
+    query_embedding = embed(retrieval_query)
 
     if len(query_embedding) != VECTOR_DIMENSION:
         raise ValueError(
@@ -109,9 +116,6 @@ def search(
         for vector_row in vector_rows:
             similarity = 1.0 - vector_row["distance"]
 
-            if similarity < min_similarity:
-                continue
-
             conditions = [
                 "id = ?",
                 "status = 'active'",
@@ -140,7 +144,7 @@ def search(
                 continue
 
             overlap = _keyword_overlap(
-                query,
+                retrieval_query,
                 memory["content"],
             )
 
@@ -150,6 +154,9 @@ def search(
                 confidence=memory["confidence"],
                 keyword_overlap=overlap,
             )
+
+            if relevance < min_relevance:
+                continue
 
             candidates.append(
                 {

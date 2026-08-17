@@ -8,7 +8,7 @@ def build_memory_context(
 ) -> str:
     memories = memory.search(
         query=query,
-        limit=10,
+        limit=limit,
     )
 
     memories = [
