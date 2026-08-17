@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from AI.agent.ollama import send_message, unload_model
-from AI.tools import ALL_TOOLS, TOOLS_MAP
+from AI.tools import skill_manager
 from AI.ollama_manager import start_ollama, stop_ollama
 from utils import init_memory_tracker, print_memory_stats
 from config import NAME
@@ -17,6 +17,7 @@ def main():
         return
 
     print("🤖 AI Assistant Initialized. Type 'exit' or 'quit' to stop.\n")
+    print("Loaded skills:", skill_manager.list_skills())
 
     try:
         while True:
@@ -30,7 +31,7 @@ def main():
                     print(f"{NAME}: See you later!")
                     break
 
-                response = send_message(user_input, ALL_TOOLS, TOOLS_MAP)
+                response = send_message(user_input, skill_manager.get_tools(), skill_manager.get_tool_map())
                 print(f"{NAME}: {response}\n")
 
                 print_memory_stats()

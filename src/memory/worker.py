@@ -19,13 +19,11 @@ class MemoryWorker:
             user_input, assistant_response = self._queue.get()
 
             try:
-                print("🧠 Memory processing started...")
                 process_conversation(
                     user_input,
                     assistant_response,
                     ollama_memory_llm,
                 )
-                print("🧠 Memory processing completed.")
             except Exception as e:
                 print(f"⚠️ Memory processing failed: {e}")
             finally:

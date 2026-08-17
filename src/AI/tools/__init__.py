@@ -1,5 +1,5 @@
 from .system_tools import (
-    ALL_TOOLS as SYSTEM_TOOLS,
+    SYSTEM_TOOLS,
     get_current_time,
     open_website,
     open_app,
@@ -7,20 +7,28 @@ from .system_tools import (
 )
 
 from ..spotify import ALL_SPOTIFY_TOOLS
+from ..skill_manager import SkillManager
 
 
-ALL_TOOLS = [
-    *SYSTEM_TOOLS,
-    *ALL_SPOTIFY_TOOLS,
-]
+skill_manager = SkillManager()
 
-TOOLS_MAP = {
-    func.__name__: func
-    for func in ALL_TOOLS
-}
+skill_manager.register_skill(
+    "system",
+    SYSTEM_TOOLS,
+)
+
+skill_manager.register_skill(
+    "spotify",
+    ALL_SPOTIFY_TOOLS,
+)
+
+
+ALL_TOOLS = skill_manager.get_tools()
+TOOLS_MAP = skill_manager.get_tool_map()
 
 
 __all__ = [
+    "skill_manager",
     "ALL_TOOLS",
     "TOOLS_MAP",
     "ALL_SPOTIFY_TOOLS",

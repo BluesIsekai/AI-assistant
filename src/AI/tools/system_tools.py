@@ -178,12 +178,11 @@ def web_search(query: str) -> str:
         return f"Web search failed. Tavily and DuckDuckGo were unavailable: {e}"
 
 
-ALL_TOOLS = [
+SYSTEM_TOOLS = [
     get_current_time,
     open_website,
     open_app,
     web_search,
 ]
 
-TOOLS_MAP = {func.__name__: func for func in ALL_TOOLS}
 
