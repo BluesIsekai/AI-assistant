@@ -418,8 +418,8 @@ ALL_SPOTIFY_TOOLS = [
 ]
 
 if __name__ == "__main__":
-    # print(spotify_now_playing())  
-    print(spotify_play_playlist("Songs"))
+    print(spotify_now_playing())  
+    # print(spotify_play_playlist("Songs"))
 
     # print(spotify_pause())
     # print(spotify_resume())

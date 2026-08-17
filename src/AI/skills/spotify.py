@@ -1,0 +1,6 @@
+from AI.spotify import ALL_SPOTIFY_TOOLS
+
+
+SKILL_NAME = "spotify"
+
+SKILL_TOOLS = ALL_SPOTIFY_TOOLS
