@@ -178,11 +178,12 @@ def web_search(query: str) -> str:
         return f"Web search failed. Tavily and DuckDuckGo were unavailable: {e}"
 
 
-SYSTEM_TOOLS = [
+
+SKILL_NAME = "system"
+
+SKILL_TOOLS = [
     get_current_time,
     open_website,
     open_app,
     web_search,
 ]
-
-
