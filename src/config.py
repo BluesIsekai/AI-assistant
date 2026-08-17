@@ -17,7 +17,8 @@ def validate_config() -> None:
 
 # Model & Assistant configuration
 MODEL_NAME = "gemini-3.6-flash"
-LOCAL_MODEL = "qwen3.5:9b"
+# LOCAL_MODEL = "qwen3.5:9b"
+LOCAL_MODEL = "qwen3.5:9b-q3"
 # LOCAL_MODEL = "gemma4:e4b-it-qat"
 CONTEXT_SIZE = 8192
 MAX_HISTORY_MESSAGES = 20

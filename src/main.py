@@ -32,7 +32,7 @@ def main():
                     break
 
                 response = send_message(user_input, skill_manager.get_tools(), skill_manager.get_tool_map())
-                print(f"{NAME}: {response}\n")
+                print(f"\n{NAME}: {response}\n")
 
                 print_memory_stats()
 
