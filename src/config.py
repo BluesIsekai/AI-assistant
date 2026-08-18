@@ -30,7 +30,54 @@ SPOTIFY_REDIRECT_URI = os.environ.get("SPOTIFY_REDIRECT_URI")
 
 NAME = "Yuna"
 
+# -------------------------
+# Voice configuration
+# -------------------------
 
+VOICE_ENABLED = False
+
+# CrispASR executable
+CRISPASR_EXE = r"D:\AI\crispasr-windows-x86_64-cuda\crispasr.exe"
+
+# Speech-to-Text: CPU-only Parakeet
+STT_ENABLED = True
+STT_MODEL_PATH = r"C:\Users\joshi\.cache\crispasr\parakeet-tdt-1.1b-q4_k.gguf"
+STT_BACKEND = "parakeet"
+STT_LANGUAGE = "en"
+STT_STREAM_STEP_MS = 400
+STT_STREAM_KEEP_MS = 800
+
+# Text-to-Speech: persistent Qwen3-TTS CustomVoice server
+TTS_ENABLED = True
+TTS_MODEL_PATH = r"D:\AI\qwen3-tts-12hz-0.6b-customvoice-q8_0.gguf"
+TTS_CODEC_MODEL_PATH = r"D:\AI\qwen3-tts-tokenizer-12hz.gguf"
+TTS_BACKEND = "qwen3-tts-customvoice"
+TTS_VOICE = "Sohee"
+TTS_SERVER_HOST = "127.0.0.1"
+TTS_SERVER_PORT = 8765
+TTS_OUTPUT_PATH = r"D:\AI\yuna_tts_output.wav"
+
+
+
+
+# =========================
+# Voice / TTS
+# =========================
+
+TTS_PROVIDER = "local"
+
+TTS_FALLBACK_TO_LOCAL = True
+
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
+ELEVENLABS_MODEL = "eleven_flash_v2_5"
+ELEVENLABS_VOICE_ID = "4O1sYUnmtThcBoSBrri7"
+
+
+
+
+
+# Discord intentionally does not use this voice layer yet.
+DISCORD_VOICE_ENABLED = False
 
 SYSTEM_INSTRUCTION = (
     f"Your name is {NAME}\n"
