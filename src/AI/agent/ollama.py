@@ -87,6 +87,9 @@ def send_message(
     tools: list,
     tool_map: dict,
     history: list = None,
+    use_memory: bool = True,
+    system_instruction: str = None,
+    store_memory: bool = True,
 ) -> str:
     """Sends a user message to Ollama with multi-turn conversation context and tool support.
 
@@ -104,7 +107,11 @@ def send_message(
     })
 
     # Retrieve relevant memories for the current message.
-    memory_context = build_memory_context(user_input)
+    memory_context = (
+        build_memory_context(user_input)
+        if use_memory
+        else ""
+    )
 
     max_history = getattr(config, "MAX_HISTORY_MESSAGES", 20)
     trimmed_history = _trim_history(target_history, max_history)
@@ -113,7 +120,11 @@ def send_message(
     messages = [
         {
             "role": "system",
-            "content": config.SYSTEM_INSTRUCTION,
+            "content": (
+                system_instruction
+                if system_instruction is not None
+                else config.SYSTEM_INSTRUCTION
+            ),
         }
     ]
 
@@ -217,7 +228,7 @@ def send_message(
 
     # Process memory in the background so the user does not
     # have to wait for extraction, deduplication, and embedding.
-    if assistant_response:
+    if assistant_response and store_memory:
         memory_worker.submit(user_input, assistant_response)
 
     # If using module history, enforce sliding window trim.

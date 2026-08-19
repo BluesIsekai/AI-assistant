@@ -120,8 +120,9 @@ class CrispASRTTS:
 
         payload = json.dumps({
             "input": text,
-            "voice": self.voice,
-            "response_format": "wav",
+            "voice": "D:\\AI\\voice_dataset\\...\\0014.wav",
+            "ref_text": "...",
+            "consent_attestation": "..."
         }).encode("utf-8")
 
         request = urllib.request.Request(
@@ -270,52 +271,251 @@ class ElevenLabsTTS:
 
         return self.output_path
 
-    @staticmethod
-    def _write_wav(
-        pcm_audio: bytes,
-        output_path: Path,
-    ) -> None:
-        sample_rate = 24000
-        channels = 1
-        sample_width = 2
 
-        byte_rate = (
-            sample_rate *
-            channels *
-            sample_width
+class CrispASRCosyVoice3TTS:
+    """Persistent CosyVoice3 TTS using a baked GGUF voice pack."""
+
+    def __init__(
+        self,
+        crispasr_exe: str,
+        model_path: str,
+        flow_model_path: str,
+        hift_model_path: str,
+        voice_model_path: str,
+        voice: str = "yuna",
+        backend: str = "cosyvoice3-tts",
+        host: str = "127.0.0.1",
+        port: int = 8765,
+        output_path: str = "voice_output.wav",
+        source_language: str = "en",
+        target_language: str = "en",
+        no_spoken_disclaimer: bool = True,
+    ) -> None:
+
+        self.crispasr_exe = str(Path(crispasr_exe))
+        self.model_path = str(Path(model_path))
+        self.flow_model_path = str(Path(flow_model_path))
+        self.hift_model_path = str(Path(hift_model_path))
+        self.voice_model_path = str(Path(voice_model_path))
+
+        self.voice = voice
+        self.backend = backend
+
+        self.host = host
+        self.port = port
+
+        self.output_path = Path(output_path)
+
+        self.source_language = source_language
+        self.target_language = target_language
+
+        self.no_spoken_disclaimer = no_spoken_disclaimer
+
+        self._process: subprocess.Popen[str] | None = None
+        self._lock = threading.Lock()
+
+    @property
+    def base_url(self) -> str:
+        return f"http://{self.host}:{self.port}"
+
+    def _is_port_open(self) -> bool:
+        with socket.socket(
+            socket.AF_INET,
+            socket.SOCK_STREAM,
+        ) as sock:
+
+            sock.settimeout(0.15)
+
+            return (
+                sock.connect_ex(
+                    (self.host, self.port)
+                ) == 0
+            )
+
+    def start(self, timeout: float = 60.0) -> None:
+
+        if self._is_port_open():
+            return
+
+        required_files = {
+            "CrispASR executable": self.crispasr_exe,
+            "CosyVoice3 LLM": self.model_path,
+            "CosyVoice3 Flow": self.flow_model_path,
+            "CosyVoice3 HiFT": self.hift_model_path,
+            "CosyVoice3 voice pack": self.voice_model_path,
+        }
+
+        for description, path in required_files.items():
+
+            if not Path(path).exists():
+
+                raise FileNotFoundError(
+                    f"{description} not found: {path}"
+                )
+
+        cmd = [
+            self.crispasr_exe,
+
+            "--server",
+
+            "--backend",
+            self.backend,
+
+            "-m",
+            self.model_path,
+
+            "--codec-model",
+            self.flow_model_path,
+
+            "--voice-dir",
+            str(Path(self.voice_model_path).parent),
+
+            "--port",
+            str(self.port),
+
+            "--gpu-backend",
+            "cuda",
+        ]
+
+        if self.no_spoken_disclaimer:
+
+            cmd.extend([
+                "--no-spoken-disclaimer",
+                "--accept-marking-responsibility",
+            ])
+
+        creationflags = getattr(
+            subprocess,
+            "CREATE_NO_WINDOW",
+            0,
         )
 
-        block_align = channels * sample_width
+        self._process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            creationflags=creationflags,
+        )
 
-        with open(output_path, "wb") as wav:
-            wav.write(b"RIFF")
-            wav.write(
-                struct.pack(
-                    "<I",
-                    36 + len(pcm_audio)
+        deadline = time.monotonic() + timeout
+
+        while time.monotonic() < deadline:
+
+            if self._process.poll() is not None:
+
+                stderr = ""
+
+                if self._process.stderr:
+
+                    try:
+                        stderr = self._process.stderr.read()
+
+                    except Exception:
+                        pass
+
+                raise RuntimeError(
+                    "CrispASR CosyVoice3 server "
+                    f"exited with code "
+                    f"{self._process.returncode}.\n"
+                    f"{stderr}"
                 )
+
+            if self._is_port_open():
+
+                # Give the server a tiny moment to finish
+                # registering the voice pack.
+                time.sleep(0.2)
+
+                return
+
+            time.sleep(0.1)
+
+        self.stop()
+
+        raise TimeoutError(
+            "Timed out waiting for the "
+            "CrispASR CosyVoice3 server."
+        )
+
+    def synthesize(self, text: str) -> Path:
+
+        text = text.strip()
+
+        if not text:
+
+            raise ValueError(
+                "TTS text cannot be empty."
             )
-            wav.write(b"WAVE")
 
-            wav.write(b"fmt ")
-            wav.write(struct.pack("<I", 16))
-            wav.write(struct.pack("<H", 1))
-            wav.write(struct.pack("<H", channels))
-            wav.write(struct.pack("<I", sample_rate))
-            wav.write(struct.pack("<I", byte_rate))
-            wav.write(struct.pack("<H", block_align))
-            wav.write(struct.pack("<H", sample_width * 8))
+        self.start()
 
-            wav.write(b"data")
-            wav.write(
-                struct.pack(
-                    "<I",
-                    len(pcm_audio)
+        payload = {
+            "model": Path(self.model_path).name,
+            "input": text,
+            "voice": self.voice,
+            "response_format": "wav",
+            "consent_attestation": (
+                "I have the speaker's consent to use this voice, "
+                "or this is my own voice."
+            ),
+            "spoken_disclaimer": False,
+        }
+
+        request = urllib.request.Request(
+            f"{self.base_url}/v1/audio/speech",
+
+            data=json.dumps(
+                payload
+            ).encode("utf-8"),
+
+            headers={
+                "Content-Type":
+                    "application/json"
+            },
+
+            method="POST",
+        )
+
+        with self._lock:
+
+            try:
+
+                with urllib.request.urlopen(
+                    request,
+                    timeout=120,
+                ) as response:
+
+                    audio = response.read()
+
+            except urllib.error.HTTPError as exc:
+
+                body = exc.read().decode(
+                    "utf-8",
+                    errors="replace",
                 )
+
+                raise RuntimeError(
+                    f"CosyVoice3 HTTP "
+                    f"{exc.code}: {body}"
+                ) from exc
+
+            self.output_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
             )
-            wav.write(pcm_audio)
+
+            self.output_path.write_bytes(
+                audio
+            )
+
+        return self.output_path
 
     def speak(self, text: str) -> None:
+
         wav = self.synthesize(text)
 
         winsound.PlaySound(
@@ -325,59 +525,77 @@ class ElevenLabsTTS:
         )
 
     def stop(self) -> None:
-        """No persistent process to stop."""
+
+        process = self._process
+
+        self._process = None
+
+        if (
+            process is not None
+            and process.poll() is None
+        ):
+
+            process.terminate()
+
+            try:
+
+                process.wait(
+                    timeout=2
+                )
+
+            except subprocess.TimeoutExpired:
+
+                process.kill()
+
+                process.wait(
+                    timeout=2
+                )
 
 
 def create_tts(config):
-    """
-    Creates the configured TTS provider.
-
-    ElevenLabs can optionally fall back to local CrispASR/Qwen3-TTS.
-    """
 
     provider = getattr(
         config,
         "TTS_PROVIDER",
-        "local"
+        "cosyvoice3",
     ).lower()
 
-    if provider == "elevenlabs":
-        try:
-            print("🔊 TTS: ElevenLabs")
+    if provider == "cosyvoice3":
 
-            return ElevenLabsTTS(
-                api_key=config.ELEVENLABS_API_KEY,
-                voice_id=config.ELEVENLABS_VOICE_ID,
-                model=config.ELEVENLABS_MODEL,
-                output_path=config.TTS_OUTPUT_PATH,
-            )
+        print("🔊 TTS: CosyVoice3 SFT — baked Yuna voice")
 
-        except Exception as exc:
-            if not getattr(
-                config,
-                "TTS_FALLBACK_TO_LOCAL",
-                True
-            ):
-                raise
+        return CrispASRCosyVoice3TTS(
+            crispasr_exe=config.CRISPASR_EXE,
 
-            print(
-                f"⚠️ ElevenLabs unavailable: {exc}"
-            )
-            print("🔊 TTS: Falling back to local Qwen3-TTS")
+            model_path=config.TTS_MODEL_PATH,
 
-    elif provider != "local":
-        print(
-            f"⚠️ Unknown TTS provider '{provider}'. "
-            "Using local TTS."
+            flow_model_path=
+                config.TTS_FLOW_MODEL_PATH,
+
+            hift_model_path=
+                config.TTS_HIFT_MODEL_PATH,
+
+            voice_model_path=
+                config.TTS_VOICE_MODEL_PATH,
+
+            voice=config.TTS_VOICE,
+
+            backend=config.TTS_BACKEND,
+
+            host=config.TTS_SERVER_HOST,
+
+            port=config.TTS_SERVER_PORT,
+
+            output_path=config.TTS_OUTPUT_PATH,
+
+            source_language=
+                config.TTS_SOURCE_LANGUAGE,
+
+            target_language=
+                config.TTS_TARGET_LANGUAGE,
+
+            no_spoken_disclaimer=
+                config.TTS_NO_SPOKEN_DISCLAIMER,
         )
 
-    return CrispASRTTS(
-        crispasr_exe=config.CRISPASR_EXE,
-        model_path=config.TTS_MODEL_PATH,
-        codec_model_path=config.TTS_CODEC_MODEL_PATH,
-        backend=config.TTS_BACKEND,
-        voice=config.TTS_VOICE,
-        host=config.TTS_SERVER_HOST,
-        port=config.TTS_SERVER_PORT,
-        output_path=config.TTS_OUTPUT_PATH,
-    )
+    # Keep your existing ElevenLabs/local providers below.
