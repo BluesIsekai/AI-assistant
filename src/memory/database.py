@@ -3,10 +3,11 @@ import sqlite3
 
 import sqlite_vec
 
+import config
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-DATA_DIR = BASE_DIR / "data"
-DB_PATH = DATA_DIR / "memory.db"
+
+DB_PATH = config.MEMORY_DB_PATH
+DATA_DIR = DB_PATH.parent
 
 VECTOR_DIMENSION = 1024
 

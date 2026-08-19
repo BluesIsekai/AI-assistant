@@ -2,7 +2,7 @@ from asyncio import threads
 import os
 import sys
 from personality import PERSONALITY
-
+from pathlib import Path
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -14,6 +14,13 @@ def validate_config() -> None:
     if not os.environ.get("GEMINI_API_KEY"):
         print("Error: GEMINI_API_KEY environment variable not set.")
         sys.exit(1)
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DATA_DIR = BASE_DIR / "data"
+
+MEMORY_DB_PATH = DATA_DIR / "memory.db"
+DISCORD_MEMORY_DB_PATH = DATA_DIR / "discord_memory.db"
+
 
 # Model & Assistant configuration
 MODEL_NAME = "gemini-3.6-flash"
@@ -34,28 +41,76 @@ NAME = "Yuna"
 # Voice configuration
 # -------------------------
 
-VOICE_ENABLED = False
+VOICE_ENABLED = True
 
-# CrispASR executable
-CRISPASR_EXE = r"D:\AI\crispasr-windows-x86_64-cuda\crispasr.exe"
+VOICE_RUNTIME_DIR = Path(__file__).resolve().parent / "runtime" / "voice"
+VOICE_MODELS_DIR = VOICE_RUNTIME_DIR / "models"
+CRISPASR_DIR = VOICE_RUNTIME_DIR / "crispasr"
 
-# Speech-to-Text: CPU-only Parakeet
+# -------------------------
+# CrispASR
+# -------------------------
+
+CRISPASR_EXE = str(
+    CRISPASR_DIR / "crispasr.exe"
+)
+
+# -------------------------
+# Speech-to-Text
+# -------------------------
+
 STT_ENABLED = True
-STT_MODEL_PATH = r"C:\Users\joshi\.cache\crispasr\parakeet-tdt-1.1b-q4_k.gguf"
+
+STT_MODEL_PATH = str(
+    VOICE_MODELS_DIR / "parakeet-tdt-1.1b-q4_k.gguf"
+)
+
 STT_BACKEND = "parakeet"
 STT_LANGUAGE = "en"
+
 STT_STREAM_STEP_MS = 400
 STT_STREAM_KEEP_MS = 800
 
-# Text-to-Speech: persistent Qwen3-TTS CustomVoice server
+# -------------------------
+# CosyVoice3 TTS
+# -------------------------
+
 TTS_ENABLED = True
-TTS_MODEL_PATH = r"D:\AI\qwen3-tts-12hz-0.6b-customvoice-q8_0.gguf"
-TTS_CODEC_MODEL_PATH = r"D:\AI\qwen3-tts-tokenizer-12hz.gguf"
-TTS_BACKEND = "qwen3-tts-customvoice"
-TTS_VOICE = "Sohee"
+TTS_PROVIDER = "cosyvoice3"
+
+TTS_MODEL_PATH = str(
+    VOICE_MODELS_DIR / "cosyvoice3-llm-q4_k.gguf"
+)
+
+TTS_FLOW_MODEL_PATH = str(
+    VOICE_MODELS_DIR / "cosyvoice3-flow-q8_0.gguf"
+)
+
+TTS_HIFT_MODEL_PATH = str(
+    VOICE_MODELS_DIR / "cosyvoice3-hift-f16.gguf"
+)
+
+TTS_VOICE_MODEL_PATH = str(
+    VOICE_MODELS_DIR / "cosyvoice3-voices.gguf"
+)
+
+TTS_VOICE = "yuna"
+
+TTS_BACKEND = "cosyvoice3-tts"
+
 TTS_SERVER_HOST = "127.0.0.1"
 TTS_SERVER_PORT = 8765
-TTS_OUTPUT_PATH = r"D:\AI\yuna_tts_output.wav"
+
+TTS_OUTPUT_PATH = str(
+    DATA_DIR / "yuna_tts_output.wav"
+)
+
+TTS_SOURCE_LANGUAGE = "en"
+TTS_TARGET_LANGUAGE = "en"
+
+TTS_NO_SPOKEN_DISCLAIMER = True
+
+TTS_FALLBACK_TO_LOCAL = False
 
 
 
@@ -64,9 +119,6 @@ TTS_OUTPUT_PATH = r"D:\AI\yuna_tts_output.wav"
 # Voice / TTS
 # =========================
 
-TTS_PROVIDER = "local"
-
-TTS_FALLBACK_TO_LOCAL = True
 
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 ELEVENLABS_MODEL = "eleven_flash_v2_5"

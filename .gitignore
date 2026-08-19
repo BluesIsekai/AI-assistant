@@ -16,3 +16,5 @@ data
 .spotify_cache
 
 AI_Project_Handoff_README.md
+
+src/runtime/*
