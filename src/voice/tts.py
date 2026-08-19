@@ -12,6 +12,14 @@ import winsound
 from pathlib import Path
 
 
+import re
+
+def clean_for_tts(text: str) -> str:
+    text = re.sub(r"\*+", "", text)
+    text = re.sub(r"_+", "", text)
+    text = re.sub(r"`+", "", text)
+    return text.strip()
+
 class CrispASRTTS:
     """Persistent Qwen3-TTS server + Windows WAV playback."""
 
@@ -161,10 +169,11 @@ class CrispASRTTS:
 
         return self.output_path
 
-    def speak(self, text: str) -> None:
-        wav = self.synthesize(text)
+        def speak(self, text: str) -> None:
+            text = clean_for_tts(text)
+            wav = self.synthesize(text)
 
-        winsound.PlaySound(
+            winsound.PlaySound(
             str(wav),
             winsound.SND_FILENAME |
             winsound.SND_NODEFAULT,
@@ -394,7 +403,7 @@ class CrispASRCosyVoice3TTS:
             cmd,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
+            stderr=None,
             text=True,
             encoding="utf-8",
             errors="replace",

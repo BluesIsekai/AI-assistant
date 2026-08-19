@@ -1,4 +1,5 @@
 import sys
+import re
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -9,6 +10,25 @@ from AI.ollama_manager import start_ollama, stop_ollama
 from utils import init_memory_tracker, print_memory_stats
 from config import NAME
 import config
+
+
+def clean_for_tts(text: str) -> str:
+    """Remove chat formatting that should not be spoken."""
+    text = re.sub(r"\*+", "", text)
+    text = re.sub(r"`+", "", text)
+    text = re.sub(r"_{1,2}", "", text)
+    text = re.sub(r"#{1,6}\s*", "", text)
+    return text.strip()
+
+
+def process_input(user_input: str) -> str:
+    """Process user input through the same AI + tool pipeline."""
+
+    return send_message(
+        user_input,
+        skill_manager.get_tools(),
+        skill_manager.get_tool_map(),
+    )
 
 
 def main():
@@ -41,7 +61,13 @@ def main():
     print("Loaded skills:", skill_manager.list_skills())
 
     try:
+
+        # =========================
+        # VOICE MODE
+        # =========================
+
         if voice is not None:
+
             print(
                 "🎙️ Voice mode active. "
                 "Speak to the assistant. "
@@ -49,33 +75,42 @@ def main():
             )
 
             while True:
+
                 user_input = voice.listen()
 
                 if not user_input:
                     continue
 
+                user_input = user_input.strip()
+
                 print(f"You: {user_input}")
 
-                if user_input.lower().strip() in {"exit", "quit"}:
+                command = re.sub(r"[^\w\s]", "", user_input).lower().strip()
+
+                if command in {"exit", "quit"}:
                     print(f"{NAME}: See you later!")
                     break
 
-                response = send_message(
-                    user_input,
-                    skill_manager.get_tools(),
-                    skill_manager.get_tool_map(),
-                )
+                # SAME PIPELINE AS TEXT MODE
+                response = process_input(user_input)
 
                 print(f"\n{NAME}: {response}\n")
 
-                voice.speak(response)
+                # Only clean the copy sent to TTS
+                voice.speak(clean_for_tts(response))
 
                 print_memory_stats()
 
+        # =========================
+        # TEXT MODE
+        # =========================
+
         else:
+
             print("Type 'exit' or 'quit' to stop.\n")
 
             while True:
+
                 user_input = input("You: ").strip()
 
                 if not user_input:
@@ -85,23 +120,23 @@ def main():
                     print(f"{NAME}: See you later!")
                     break
 
-                response = send_message(
-                    user_input,
-                    skill_manager.get_tools(),
-                    skill_manager.get_tool_map(),
-                )
+                # SAME PIPELINE AS VOICE MODE
+                response = process_input(user_input)
 
                 print(f"\n{NAME}: {response}\n")
 
                 print_memory_stats()
 
     except KeyboardInterrupt:
+
         print("\nStopping...")
 
     except Exception as e:
+
         print(f"An error occurred: {e}\n")
 
     finally:
+
         if voice is not None:
             voice.stop()
 

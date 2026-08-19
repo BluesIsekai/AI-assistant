@@ -62,10 +62,10 @@ CRISPASR_EXE = str(
 STT_ENABLED = True
 
 STT_MODEL_PATH = str(
-    VOICE_MODELS_DIR / "parakeet-tdt-1.1b-q4_k.gguf"
+    VOICE_MODELS_DIR / "qwen3-asr-0.6b-q4_k.gguf"
 )
 
-STT_BACKEND = "parakeet"
+STT_BACKEND = "qwen3"
 STT_LANGUAGE = "en"
 
 STT_STREAM_STEP_MS = 400
